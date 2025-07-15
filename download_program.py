@@ -13,7 +13,7 @@ def get_folder_name_from_url(url):
     folder_name = path.split('/download/')[1].replace('.html', '')
     return folder_name
 
-def download_all_chapters(manga_page_url, cookies, start=1, end=None):
+def download_all_chapters(manga_page_url, start=1, end=None):
     manga_name = get_folder_name_from_url(manga_page_url)
     save_dir = os.path.join(os.getcwd(), manga_name)
     os.makedirs(save_dir, exist_ok=True)
@@ -24,7 +24,7 @@ def download_all_chapters(manga_page_url, cookies, start=1, end=None):
         "Origin": "https://im.manga-chan.me",
     }
 
-    response = requests.get(manga_page_url, cookies=cookies, headers=headers)
+    response = requests.get(manga_page_url, headers=headers)
     response.raise_for_status()
 
     soup = BeautifulSoup(response.text, 'html.parser')
@@ -46,7 +46,7 @@ def download_all_chapters(manga_page_url, cookies, start=1, end=None):
 
     for index, link in enumerate(selected_links, start=start):
         try:
-            res = requests.get(link, cookies=cookies, headers=headers, allow_redirects=False)
+            res = requests.get(link, headers=headers, allow_redirects=False)
             real_url = res.headers.get("Location")
 
             if not real_url:
@@ -57,7 +57,7 @@ def download_all_chapters(manga_page_url, cookies, start=1, end=None):
             new_filename = f"{index}{extension}"
             filepath = os.path.join(save_dir, new_filename)
 
-            r = requests.get(real_url, stream=True, cookies=cookies, headers=headers)
+            r = requests.get(real_url, stream=True, headers=headers)
             total_size = int(r.headers.get('content-length', 0))
             chunk_size = 8192
 
@@ -89,23 +89,12 @@ if __name__ == "__main__":
         messagebox.showerror("Ошибка", "URL обязателен!")
         exit(1)
 
-    cookies_input = simpledialog.askstring("PHPSESSID", "Введите PHPSESSID (или оставьте пустым):")
     start = simpledialog.askinteger("Начало", "С какой главы начать?", initialvalue=1)
     end = simpledialog.askinteger("Конец", "На какой главе закончить?", initialvalue=None)
 
-    cookies = None
-    if cookies_input:
-        cookies = {
-            "PHPSESSID": cookies_input.strip(),
-            "dle_user_id": "1234529",
-            "dle_password": "8b7771b3b58820fde60f6496f1558529",
-            "dle_newpm": "0"
-        }
-
-    save_path = download_all_chapters(url, cookies, start, end)
+    save_path = download_all_chapters(url, start, end)
 
     converter_script = os.path.join(os.getcwd(), "Converter_avif_jpg.bat")
-
     subprocess.run([converter_script], cwd=save_path, shell=True)
 
     messagebox.showinfo("Готово", "Скачивание и конвертация завершены!")
